@@ -25,7 +25,7 @@ Full Video Guide: https://www.youtube.com/watch?v=ad1BxZufer8&list=PLE9hy4A7ZTmp
 
 ### Prerequisites
 
-- Node.js 18+ 
+- Node.js 18+
 - npm or yarn
 - A Supabase account
 - A Stripe account
@@ -56,56 +56,66 @@ or
 yarn install
 ```
 
-3. Create .env.local with all variables from .env.example
+3. Create .env.local with the following variables:
 ```
-NEXT_PUBLIC_APP_URL=http://localhost:8000
-NEXT_PUBLIC_API_URL=http://localhost:8080
-NEXT_PUBLIC_WS_URL=ws://localhost:8080
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+NEXT_PUBLIC_API_URL=http://localhost:3000/api
+NEXT_PUBLIC_WS_URL=ws://localhost:3000
 
-# Supabase Configuration
-NEXT_PUBLIC_SUPABASE_URL=
-NEXT_PUBLIC_SUPABASE_ANON_KEY=
-SUPABASE_SERVICE_ROLE_KEY=
+# Supabase Configuration (from Project Settings > API)
+NEXT_PUBLIC_SUPABASE_URL=https://your-project-id.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 
-# OpenAI Configuration (you'll need to add your key)
-OPENAI_API_KEY=
+# OpenAI Configuration (only if you need it)
+OPENAI_API_KEY=your-openai-key
 
 # Stripe Configuration
-# NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_
-NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_live_
-NEXT_PUBLIC_STRIPE_BUTTON_ID=buy_btn_
-# STRIPE_SECRET_KEY=sk_test_
-STRIPE_SECRET_KEY=sk_live_
-# STRIPE_WEBHOOK_SECRET=whsec_
-STRIPE_WEBHOOK_SECRET=whsec_
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_live_your-publishable-key
+NEXT_PUBLIC_STRIPE_BUTTON_ID=buy_btn_your-button-id
+STRIPE_SECRET_KEY=sk_live_your-secret-key
+STRIPE_WEBHOOK_SECRET=whsec_your-webhook-secret
 
-# ANALYTICS
-NEXT_PUBLIC_POSTHOG_KEY=
+# ANALYTICS (only if you're using PostHog)
+NEXT_PUBLIC_POSTHOG_KEY=your-posthog-key
 NEXT_PUBLIC_POSTHOG_HOST=https://app.posthog.com
 ```
 
 4. Set up Google Cloud Platform (GCP):
-   - Create new OAuth 2.0 credentials in GCP Console
-   - Configure authorized JavaScript origins
-   - Configure redirect URIs
-   - Save the Client ID and Client Secret
+   - Create/access your GCP project
+   - Go to API & Services > Credentials
+   - Create new OAuth 2.0 credentials
+   - Configure authorized JavaScript origins (your domain, e.g., http://localhost:3000)
+   - Configure redirect URIs (your Supabase auth callback URL)
+   - Save the Client ID and Client Secret for use in Supabase
 
 5. Configure Supabase:
 
-   a. Get API Keys (Project Settings > API):
+   a. Create a Supabase account and project:
+      - Go to https://supabase.com/ and sign up/log in
+      - Create a new project with a name of your choice
+      - Set a secure database password
+
+   b. Get API Keys (Project Settings > API):
       - Project URL → NEXT_PUBLIC_SUPABASE_URL
       - Anon Public Key → NEXT_PUBLIC_SUPABASE_ANON_KEY
       - Service Role Secret → SUPABASE_SERVICE_ROLE_KEY
-   
-   b. Set up Authentication:
+
+   c. Set up Authentication:
       - Go to Authentication > Providers > Google
       - Add your GCP Client ID and Client Secret
-      - Update Site URL and Redirect URLs
-   
-   c. Database Setup:
-      - Enable Row Level Security (RLS) for all tables
-      - Create policies for authenticated users and service roles
-      - Create the following trigger function:
+      - Update Site URL (e.g., http://localhost:3000)
+      - Update Redirect URLs (e.g., http://localhost:3000/auth/callback)
+
+   d. Database Setup:
+      - Go to SQL Editor in Supabase dashboard
+      - Create a new query and paste the SQL from initial_supabase_table_schema.sql
+      - This SQL will:
+         1. Create all required tables
+         2. Enable Row Level Security (RLS) for all tables
+         3. Create policies for authenticated users and service roles
+      - Run the SQL to create the database structure
+      - Then add the trigger function with this SQL:
 
       ```sql
       CREATE OR REPLACE FUNCTION public.handle_new_user()
@@ -113,13 +123,13 @@ NEXT_PUBLIC_POSTHOG_HOST=https://app.posthog.com
       BEGIN
         INSERT INTO public.users (id, email, created_at, updated_at, is_deleted)
         VALUES (NEW.id, NEW.email, NOW(), NOW(), FALSE);
-        
+
         INSERT INTO public.user_preferences (user_id, has_completed_onboarding)
         VALUES (NEW.id, FALSE);
-        
+
         INSERT INTO public.user_trials (user_id, trial_start_time, trial_end_time)
         VALUES (NEW.id, NOW(), NOW() + INTERVAL '48 hours');
-        
+
         RETURN NEW;
       END;
       $$ LANGUAGE plpgsql SECURITY DEFINER;
@@ -130,19 +140,30 @@ NEXT_PUBLIC_POSTHOG_HOST=https://app.posthog.com
       ```
 
 6. Set up Stripe:
-   a. Create a live account and configure:
-      - Create product in Product Catalog
-      - Create promotional coupon codes
-      - Set up Payment Link with trial period
-   
-   b. Get required keys:
+   a. Create a Stripe account (or use existing one):
+      - Sign up at https://stripe.com/
+      - Switch between test/live modes as needed (test recommended for development)
+
+   b. Create products and pricing:
+      - Go to Products > Add Product
+      - Set name, description, and pricing details
+      - Make note of the price_id for each product
+
+   c. Get required API keys:
+      - Dashboard > Developers > API keys
       - Publishable Key → NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
       - Secret Key → STRIPE_SECRET_KEY
-      - Buy Button ID → NEXT_PUBLIC_STRIPE_BUTTON_ID
-   
-   c. Configure webhooks:
-      - Add endpoint: your_url/api/stripe/webhook
-      - Subscribe to events: customer.subscription.*, checkout.session.*, invoice.*, payment_intent.*
+
+   d. Create a Buy Button (if needed):
+      - Products > Select your product > Sell > Buy button
+      - Customize settings and copy the button ID (after buy_btn_)
+      - Set as NEXT_PUBLIC_STRIPE_BUTTON_ID
+
+   e. Configure webhooks:
+      - Dashboard > Developers > Webhooks > Add endpoint
+      - Add endpoint URL: your_url/api/stripe/webhook
+      - Select events to listen to: customer.subscription.*, checkout.session.*, invoice.*, payment_intent.*
+      - After creation, reveal the Signing Secret
       - Copy Signing Secret → STRIPE_WEBHOOK_SECRET
 
 7. Start the development server:
@@ -155,6 +176,11 @@ yarn dev
 ```
 
 8. Open [http://localhost:3000](http://localhost:3000) in your browser.
+
+9. Verify Your Setup:
+   - Create a test user account by signing up
+   - Check Supabase tables to confirm user data was created
+   - Test the Stripe integration by attempting a subscription
 
 ## 📖 Project Structure
 
