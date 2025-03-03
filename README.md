@@ -20,6 +20,7 @@ Full Video Guide: https://www.youtube.com/watch?v=ad1BxZufer8&list=PLE9hy4A7ZTmp
 - 🛡️ TypeScript support
 - 📊 Error boundary implementation
 - 🔍 SEO optimized
+- 🐳 Docker Compose setup with Nginx and SSL
 
 ## 🚀 Getting Started
 
@@ -30,6 +31,7 @@ Full Video Guide: https://www.youtube.com/watch?v=ad1BxZufer8&list=PLE9hy4A7ZTmp
 - A Supabase account
 - A Stripe account
 - A Google Cloud Platform account
+- Docker and Docker Compose (for containerized deployment)
 
 ### Installation and Setup
 
@@ -79,6 +81,11 @@ STRIPE_WEBHOOK_SECRET=whsec_your-webhook-secret
 # ANALYTICS (only if you're using PostHog)
 NEXT_PUBLIC_POSTHOG_KEY=your-posthog-key
 NEXT_PUBLIC_POSTHOG_HOST=https://app.posthog.com
+
+# SSL/TLS Configuration (for Docker deployment)
+SSL_DOMAIN=yourdomain.com
+SSL_EMAIL=your-email@example.com
+SSL_STAGING=true  # Set to true for testing, false for production
 ```
 
 4. Set up Google Cloud Platform (GCP):
@@ -203,6 +210,9 @@ yarn dev
 ├── components/           # Reusable components
 ├── contexts/             # React contexts
 ├── hooks/                # Custom React hooks
+├── nginx/                # Nginx configuration
+│   ├── conf/             # Nginx configuration files
+│   └── certbot/          # SSL certificate files
 ├── utils/                # Utility functions
 ├── types/                # TypeScript type definitions
 ├── public/               # Static assets
@@ -217,6 +227,9 @@ yarn dev
 - [Supabase](https://supabase.com/) - Authentication & Database
 - [Stripe](https://stripe.com/) - Payments
 - [Framer Motion](https://www.framer.com/motion/) - Animations
+- [Docker](https://www.docker.com/) - Containerization
+- [Nginx](https://nginx.org/) - Reverse proxy
+- [Let's Encrypt](https://letsencrypt.org/) - SSL certificates
 
 ## 🔧 Configuration
 
@@ -278,9 +291,40 @@ Project Link: [https://github.com/ShenSeanChen/yt-stripe-nextjs-supabase](https:
 
 ## 🚀 Deploy
 
+### Vercel Deployment
+
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js).
 
 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/yourusername/your-repo-name)
+
+### Docker Deployment with SSL
+
+The project includes Docker Compose configuration for easy deployment with SSL:
+
+1. Update the `.env` file with your domain and email:
+```
+SSL_DOMAIN=yourdomain.com
+SSL_EMAIL=your-email@example.com
+SSL_STAGING=true  # Set to true for testing, false for production
+```
+
+2. Initialize SSL certificates:
+```bash
+./init-letsencrypt.sh
+```
+
+3. Start the application:
+```bash
+docker-compose up -d
+```
+
+The application will be available at your domain with HTTPS enabled.
+
+#### SSL Configuration Notes
+
+- The `SSL_STAGING` variable should be set to `true` initially to use Let's Encrypt's staging environment (to avoid rate limits during testing)
+- Once you confirm everything works, set `SSL_STAGING` to `false` to get real certificates
+- Certificates will auto-renew every 12 hours
 
 ---
 
