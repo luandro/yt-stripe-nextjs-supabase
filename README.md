@@ -115,7 +115,8 @@ NEXT_PUBLIC_POSTHOG_HOST=https://app.posthog.com
          2. Enable Row Level Security (RLS) for all tables
          3. Create policies for authenticated users and service roles
       - Run the SQL to create the database structure
-      - Then add the trigger function with this SQL:
+      - In the SQL Editor, click "Create new query" or "New query" button
+      - Paste the following SQL to create the trigger function for handling new users:
 
       ```sql
       CREATE OR REPLACE FUNCTION public.handle_new_user()
